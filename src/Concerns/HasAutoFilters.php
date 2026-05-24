@@ -104,7 +104,9 @@ trait HasAutoFilters
     protected static function makeTernaryFilter(string $name, string $label): TernaryFilter
     {
         $resolved = static::resolveColumn($name);
-        $filter = TernaryFilter::make($name)->label($label);
+        $filter = TernaryFilter::make($name)
+            ->label($label)
+            ->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
 
         if ($resolved['type'] === FilterType::Json) {
             $filter->attribute($resolved['query_column']);
@@ -174,15 +176,13 @@ trait HasAutoFilters
 
         return Filter::make($name)
             ->label($label)
-            ->columns(config('auto-filters.date_filter_columns', 3))
             ->form([
                 DatePicker::make('from')
                     ->label($label.' from')
-                    ->inlineLabel()
-                    ->columnSpan(2),
+                    ->inlineLabel(),
                 DatePicker::make('until')
-                    ->hiddenLabel()
-                    ->columnSpan(1),
+                    ->label($label.' until')
+                    ->inlineLabel(),
             ])
             ->query(function (Builder $query, array $data) use ($resolved): Builder {
                 $from = $data['from'] ?? null;

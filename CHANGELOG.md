@@ -4,6 +4,15 @@ All notable changes to `ptplugins/filament-auto-filters` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-05-24
+
+### Changed
+- **DateRange filter** now renders as two stacked rows (`Date from`, `Date until`) with inline labels on both axes, replacing the previous single row with one inline label and one hidden-label datepicker. Yields uniform vertical rhythm in slide-over filter panels and removes the asymmetric "label only on first input" look.
+- **TernaryFilter** (boolean `IconColumn` auto-filter) now applies `inlineLabel()` to its form field via `modifyFormFieldUsing`. Previously the label rendered above the select; now it sits inline with the other auto-filters.
+
+### Removed
+- `auto-filters.date_filter_columns` config key is no longer read (was used to set the grid column count for the date range filter). The DateRange filter now uses default vertical form layout. Existing config files can keep the key — it's silently ignored.
+
 ## [1.0.1] - 2026-05-07
 
 ### Changed

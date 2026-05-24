@@ -8,6 +8,8 @@
 
 Single codebase across all three Filament major versions — same trait, same API.
 
+**🎯 [Try it live · ptplugins.com/demo/auto-filters](https://ptplugins.com/demo/auto-filters)** — no signup, click any column, see filters generate themselves.
+
 ## The Problem
 
 Every Filament resource needs filters. For a typical table with 10 columns, you end up writing 10 filter definitions — most of which follow the same patterns. Date columns get date pickers, text columns get search inputs, relationships get `whereHas` queries.
@@ -307,6 +309,51 @@ return [
     'select_searchable'       => true,         // Searchable dropdowns by default
 ];
 ```
+
+## Recommended UX: Slide-Over Panel + Inline Labels
+
+Out of the box Filament renders filters as a dropdown attached to a small "Filter" button — fine for one or two filters, cramped once a table has six or more. With auto-generated filters every column suddenly *has* a filter, so the dropdown stops scaling.
+
+The trait already renders form fields with `inlineLabel()` (label on the left of the input, single row per filter). Pair that with a **slide-over panel** on the Resource and you get a "Linear / Notion"-style filter sidebar — same setup we ship with our [live demo](https://ptplugins.com/demo/auto-filters):
+
+```php
+use Filament\Tables\Table;
+
+public static function table(Table $table): Table
+{
+    return $table
+        ->columns([/* ... */])
+        ->filters(static::autoFilters($table))
+        ->filtersFormWidth('md')                         // sm | md | lg | xl
+        ->filtersTriggerAction(
+            fn ($action) => $action->slideOver(),         // open on the right
+        );
+}
+```
+
+**What changes for the user:**
+
+- Click **Filter** → panel slides in from the right.
+- Each filter is one row: `Label  [input]` (from `inlineLabel()`).
+- Apply / Reset live in the panel footer; close = `Esc` or click outside.
+- Table reclaims the vertical space the old dropdown took.
+
+This is purely Filament's `Table` API — no extra CSS, no Livewire plumbing. The trait stays focused on filter *generation*; this snippet is the matching *presentation*.
+
+### Uniform inline labels across every filter type
+
+Every auto-generated filter renders with an inline label on the left and the input on the right, including the awkward cases that don't accept `inlineLabel()` directly:
+
+| Filter type | How inline label is applied |
+|---|---|
+| Text search (`makeTextFilter`) | `TextInput::inlineLabel()` in the filter's `->form()` schema |
+| Date range (`makeDateRangeFilter`) | **Two stacked rows** (`Date from`, `Date until`) — both `DatePicker::inlineLabel()`. Avoids the asymmetric "label only on first input" layout that a single-row layout produces. |
+| Select (`makeSelectFilter`) | `SelectFilter::modifyFormFieldUsing(fn ($f) => $f->inlineLabel())` (SelectFilter doesn't have a `->form()` we can put `inlineLabel()` on directly) |
+| Ternary (`makeTernaryFilter`) | Same as Select — `TernaryFilter::modifyFormFieldUsing(fn ($f) => $f->inlineLabel())`. Filament's `TernaryFilter` builds its own form schema, so the regular `inlineLabel()` on a child component would never reach it. |
+
+Result: every row in the slide-over reads as `[Label]  [input]` — same vertical rhythm whether the column behind it is text, date, boolean, select, JSON, or a relationship.
+
+> If you write a *custom* filter (`Filter::make()->form([...])` outside this trait) and want it to match, just add `->inlineLabel()` to every form component in the schema.
 
 ## How Column Detection Works
 
