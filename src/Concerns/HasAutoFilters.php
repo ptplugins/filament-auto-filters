@@ -104,9 +104,11 @@ trait HasAutoFilters
     protected static function makeTernaryFilter(string $name, string $label): TernaryFilter
     {
         $resolved = static::resolveColumn($name);
-        $filter = TernaryFilter::make($name)
-            ->label($label)
-            ->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
+        $filter = TernaryFilter::make($name)->label($label);
+
+        if (config('auto-filters.inline_labels', true)) {
+            $filter->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
+        }
 
         if ($resolved['type'] === FilterType::Json) {
             $filter->attribute($resolved['query_column']);
@@ -142,8 +144,11 @@ trait HasAutoFilters
             ->label($label)
             ->options($options)
             ->multiple(config('auto-filters.select_multiple', true))
-            ->searchable(config('auto-filters.select_searchable', true))
-            ->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
+            ->searchable(config('auto-filters.select_searchable', true));
+
+        if (config('auto-filters.inline_labels', true)) {
+            $filter->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
+        }
 
         $resolved = static::resolveColumn($name);
 
@@ -173,17 +178,19 @@ trait HasAutoFilters
     {
         $resolved = static::resolveColumn($name);
         $dateFormat = config('auto-filters.date_format', 'd.m.Y');
+        $inlineLabels = config('auto-filters.inline_labels', true);
+
+        $fromInput = DatePicker::make('from')->label($label.' from');
+        $untilInput = DatePicker::make('until')->label($label.' until');
+
+        if ($inlineLabels) {
+            $fromInput->inlineLabel();
+            $untilInput->inlineLabel();
+        }
 
         return Filter::make($name)
             ->label($label)
-            ->form([
-                DatePicker::make('from')
-                    ->label($label.' from')
-                    ->inlineLabel(),
-                DatePicker::make('until')
-                    ->label($label.' until')
-                    ->inlineLabel(),
-            ])
+            ->form([$fromInput, $untilInput])
             ->query(function (Builder $query, array $data) use ($resolved): Builder {
                 $from = $data['from'] ?? null;
                 $until = $data['until'] ?? null;
@@ -229,14 +236,17 @@ trait HasAutoFilters
         $resolved = static::resolveColumn($name);
         $placeholder = config('auto-filters.text_search_placeholder', 'Search...');
 
+        $input = TextInput::make('value')
+            ->label($label)
+            ->placeholder($placeholder);
+
+        if (config('auto-filters.inline_labels', true)) {
+            $input->inlineLabel();
+        }
+
         return Filter::make($name)
             ->label($label)
-            ->form([
-                TextInput::make('value')
-                    ->label($label)
-                    ->inlineLabel()
-                    ->placeholder($placeholder),
-            ])
+            ->form([$input])
             ->query(function (Builder $query, array $data) use ($resolved): Builder {
                 $value = $data['value'] ?? null;
 

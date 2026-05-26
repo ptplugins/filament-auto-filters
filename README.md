@@ -302,19 +302,21 @@ php artisan vendor:publish --tag=auto-filters-config
 ```php
 // config/auto-filters.php
 return [
-    'date_filter_columns'     => 3,          // Form column layout for date range
     'text_search_placeholder' => 'Search...', // Placeholder for text inputs
     'date_format'             => 'd.m.Y',     // Display format in filter indicators
     'select_multiple'         => true,         // Allow multi-select by default
     'select_searchable'       => true,         // Searchable dropdowns by default
+    'inline_labels'           => true,         // Apply ->inlineLabel() to every auto-filter
 ];
 ```
+
+`inline_labels` defaults to `true` because that's what pairs best with the recommended slide-over panel below. Set it to `false` if you keep the default Filament dropdown layout (the dropdown is narrow and inline labels can look cramped) or if you simply prefer stacked labels.
 
 ## Recommended UX: Slide-Over Panel + Inline Labels
 
 Out of the box Filament renders filters as a dropdown attached to a small "Filter" button — fine for one or two filters, cramped once a table has six or more. With auto-generated filters every column suddenly *has* a filter, so the dropdown stops scaling.
 
-The trait already renders form fields with `inlineLabel()` (label on the left of the input, single row per filter). Pair that with a **slide-over panel** on the Resource and you get a "Linear / Notion"-style filter sidebar — same setup we ship with our [live demo](https://ptplugins.com/demo/auto-filters):
+By default the trait applies `inlineLabel()` to every form field it generates (label on the left of the input, single row per filter — controlled by `inline_labels` in the config). That layout is *tuned for a wide panel* — pair it with a **slide-over** on the Resource and you get a "Linear / Notion"-style filter sidebar like our [live demo](https://ptplugins.com/demo/auto-filters):
 
 ```php
 use Filament\Tables\Table;
@@ -342,7 +344,7 @@ This is purely Filament's `Table` API — no extra CSS, no Livewire plumbing. Th
 
 ### Uniform inline labels across every filter type
 
-Every auto-generated filter renders with an inline label on the left and the input on the right, including the awkward cases that don't accept `inlineLabel()` directly:
+When `inline_labels` is `true` (the default), every auto-generated filter renders with an inline label on the left and the input on the right, including the awkward cases that don't accept `inlineLabel()` directly:
 
 | Filter type | How inline label is applied |
 |---|---|
@@ -353,7 +355,9 @@ Every auto-generated filter renders with an inline label on the left and the inp
 
 Result: every row in the slide-over reads as `[Label]  [input]` — same vertical rhythm whether the column behind it is text, date, boolean, select, JSON, or a relationship.
 
-> If you write a *custom* filter (`Filter::make()->form([...])` outside this trait) and want it to match, just add `->inlineLabel()` to every form component in the schema.
+Set `inline_labels => false` in the published config to skip all of the above and get stacked labels instead — better suited to the default dropdown layout.
+
+> If you write a *custom* filter (`Filter::make()->form([...])` outside this trait) and want it to match the inline style, just add `->inlineLabel()` to every form component in the schema.
 
 ## How Column Detection Works
 

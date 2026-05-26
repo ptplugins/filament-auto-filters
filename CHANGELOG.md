@@ -4,6 +4,14 @@ All notable changes to `ptplugins/filament-auto-filters` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-05-26
+
+### Added
+- `auto-filters.inline_labels` config key (default `true`) — controls whether the trait applies `inlineLabel()` to every auto-generated filter. Set to `false` if you keep the default Filament dropdown layout or prefer stacked labels above inputs. Existing setups are unaffected — the default preserves the 1.1.0 behavior.
+
+### Changed
+- README "Recommended UX" section now frames inline labels as the *default that pairs with* the slide-over panel, rather than an unconditional trait behavior. Adds a short note on when to switch the new config off.
+
 ## [1.1.0] - 2026-05-24
 
 ### Changed

@@ -43,4 +43,21 @@ return [
     'select_multiple' => true,
     'select_searchable' => true,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Inline Filter Labels
+    |--------------------------------------------------------------------------
+    |
+    | When true, every auto-generated filter renders its form field with
+    | `inlineLabel()` — label on the left, input on the right, one row per
+    | filter. Pairs well with `filtersTriggerAction(slideOver())` for a wide,
+    | Notion-style filter sidebar.
+    |
+    | Set to false if you keep the default Filament dropdown layout (the
+    | dropdown is narrow and inline labels can look cramped there) or if you
+    | prefer stacked labels above the inputs.
+    |
+    */
+    'inline_labels' => true,
+
 ];
