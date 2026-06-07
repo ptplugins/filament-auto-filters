@@ -8,6 +8,10 @@
 
 Single codebase across all three Filament major versions — same trait, same API.
 
+<p align="center" class="filament-hidden">
+  <a href="https://ptplugins.com/buy-us-a-beer"><img src="https://img.shields.io/badge/%F0%9F%8D%BA-Buy%20us%20a%20beer-yellow" alt="Buy us a beer"></a>
+</p>
+
 **🎯 [Try it live · ptplugins.com/demo/auto-filters](https://ptplugins.com/demo/auto-filters)** — no signup, click any column, see filters generate themselves.
 
 ## The Problem
@@ -307,8 +311,24 @@ return [
     'select_multiple'         => true,         // Allow multi-select by default
     'select_searchable'       => true,         // Searchable dropdowns by default
     'inline_labels'           => true,         // Apply ->inlineLabel() to every auto-filter
+    'prefer_pikaday'          => false,        // Use Pikaday for date filters when installed
 ];
 ```
+
+### Optional: Pikaday date picker
+
+Date range filters use Filament's native `DatePicker` by default. If you install the lightweight [`ptplugins/filament-pikaday`](https://packagist.org/packages/ptplugins/filament-pikaday) package (no jQuery, no moment.js), you can route every auto-generated date filter through it instead — set `prefer_pikaday => true`:
+
+```bash
+composer require ptplugins/filament-pikaday
+```
+
+```php
+// config/auto-filters.php
+'prefer_pikaday' => true,
+```
+
+The flag is a no-op when Pikaday isn't installed — auto-filters falls back to the native `DatePicker` automatically, so it's safe to enable in shared config.
 
 `inline_labels` defaults to `true` because that's what pairs best with the recommended slide-over panel below. Set it to `false` if you keep the default Filament dropdown layout (the dropdown is narrow and inline labels can look cramped) or if you simply prefer stacked labels.
 

@@ -14,6 +14,9 @@
         "filament/filament": "^3.0 || ^4.0 || ^5.0",
         "illuminate/support": "^10.0 || ^11.0 || ^12.0"
     },
+    "suggest": {
+        "ptplugins/filament-pikaday": "Lightweight Pikaday date picker (no jQuery/moment.js). When installed, enable 'auto-filters.prefer_pikaday' to route date range filters through it."
+    },
     "autoload": {
         "psr-4": {
             "PtPlugins\\FilamentAutoFilters\\": "src/"

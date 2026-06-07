@@ -60,4 +60,18 @@ return [
     */
     'inline_labels' => true,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Prefer Pikaday for Date Filters
+    |--------------------------------------------------------------------------
+    |
+    | When true and the optional `ptplugins/filament-pikaday` package is
+    | installed, date range filters use the lightweight Pikaday date picker
+    | instead of Filament's native DatePicker. Falls back to the native
+    | DatePicker automatically when Pikaday is not installed. Defaults to
+    | false — opt in to route date filters through Pikaday when available.
+    |
+    */
+    'prefer_pikaday' => false,
+
 ];

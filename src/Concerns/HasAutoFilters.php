@@ -172,6 +172,27 @@ trait HasAutoFilters
     }
 
     /**
+     * Resolve the date-picker field class used inside date range filters.
+     *
+     * Prefers the lightweight `ptplugins/filament-pikaday` field when it is
+     * installed and `auto-filters.prefer_pikaday` is enabled; otherwise falls
+     * back to Filament's native DatePicker. Pikaday is an optional (suggested)
+     * dependency, so it is referenced by string and guarded with class_exists.
+     *
+     * @return class-string<\Filament\Forms\Components\Field>
+     */
+    protected static function dateFilterFieldClass(): string
+    {
+        $pikaday = 'PtPlugins\\FilamentPikaday\\Fields\\PikadayDatePicker';
+
+        if (config('auto-filters.prefer_pikaday', false) && class_exists($pikaday)) {
+            return $pikaday;
+        }
+
+        return DatePicker::class;
+    }
+
+    /**
      * Create a date range filter (from/until) for a column.
      */
     protected static function makeDateRangeFilter(string $name, string $label): Filter
@@ -180,8 +201,9 @@ trait HasAutoFilters
         $dateFormat = config('auto-filters.date_format', 'd.m.Y');
         $inlineLabels = config('auto-filters.inline_labels', true);
 
-        $fromInput = DatePicker::make('from')->label($label.' from');
-        $untilInput = DatePicker::make('until')->label($label.' until');
+        $picker = static::dateFilterFieldClass();
+        $fromInput = $picker::make('from')->label($label.' from');
+        $untilInput = $picker::make('until')->label($label.' until');
 
         if ($inlineLabels) {
             $fromInput->inlineLabel();
