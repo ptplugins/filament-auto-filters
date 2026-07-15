@@ -4,6 +4,19 @@ All notable changes to `ptplugins/filament-auto-filters` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-07-15
+
+### Added
+- **Safe filter names for dotted / spaced / accented columns.** Auto filters now derive their Livewire/URL state key through the new public `HasAutoFilters::filterName()` helper. A column like `data.Ukupna naknada` or `mktHcpItem.Client ID` (space + dot + diacritics) previously produced an invalid `wire:model` / HTML attribute that broke the whole filters form in the browser; it is now slugged to a safe key (`af_data_ukupna_naknada`) while the query still runs against the original column via `resolveColumn()`.
+- `auto-filters.sanitize_names` config key (default `true`).
+
+### Changed
+- Sanitization is **conditional**: names that are already valid state keys (letters/digits/underscore, e.g. `product`, `created_at`) pass through unchanged, so existing simple-column filters keep their names, bookmarked URLs, and selectors. Only unsafe names are slugged. Set `auto-filters.sanitize_names` to `false` for the legacy raw-name behavior.
+- Filter overrides can now target an auto column by **either** its original column name or its `filterName()` slug; `$skip` continues to match the original column name.
+
+### Note
+- For columns whose raw name was previously an *unsafe* key, the URL state key (`?tableFilters[...]`) changes to the new slug - old bookmarked filter URLs for those columns stop applying. Simple-column keys are unaffected.
+
 ## [1.1.2] - 2026-06-07
 
 ### Added
@@ -12,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ## [1.1.1] - 2026-05-26
 
 ### Added
-- `auto-filters.inline_labels` config key (default `true`) — controls whether the trait applies `inlineLabel()` to every auto-generated filter. Set to `false` if you keep the default Filament dropdown layout or prefer stacked labels above inputs. Existing setups are unaffected — the default preserves the 1.1.0 behavior.
+- `auto-filters.inline_labels` config key (default `true`) - controls whether the trait applies `inlineLabel()` to every auto-generated filter. Set to `false` if you keep the default Filament dropdown layout or prefer stacked labels above inputs. Existing setups are unaffected - the default preserves the 1.1.0 behavior.
 
 ### Changed
 - README "Recommended UX" section now frames inline labels as the *default that pairs with* the slide-over panel, rather than an unconditional trait behavior. Adds a short note on when to switch the new config off.
@@ -24,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - **TernaryFilter** (boolean `IconColumn` auto-filter) now applies `inlineLabel()` to its form field via `modifyFormFieldUsing`. Previously the label rendered above the select; now it sits inline with the other auto-filters.
 
 ### Removed
-- `auto-filters.date_filter_columns` config key is no longer read (was used to set the grid column count for the date range filter). The DateRange filter now uses default vertical form layout. Existing config files can keep the key — it's silently ignored.
+- `auto-filters.date_filter_columns` config key is no longer read (was used to set the grid column count for the date range filter). The DateRange filter now uses default vertical form layout. Existing config files can keep the key - it's silently ignored.
 
 ## [1.0.1] - 2026-05-07
 
@@ -36,7 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Added
 - Initial release.
 - `HasAutoFilters` trait for Filament Resource classes.
-- `static::autoFilters($table, overrides: [], skip: [])` — generates filters from the table's column definitions.
+- `static::autoFilters($table, overrides: [], skip: [])` - generates filters from the table's column definitions.
 - Auto-detection rules:
   - `TextColumn` (date / datetime via Filament's `isDate()` / `isDateTime()`) → date range picker (from / until)
   - `TextColumn` (default) → text search (`LIKE %...%`)
@@ -45,10 +58,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
   - Dot-notation `rel.col` → `whereRelation()` query
   - Dot-notation `data.X` → JSON arrow query (`data->X`)
 - Helpers exposed for manual use:
-  - `makeTextFilter(name, label)` — text search filter
-  - `makeDateRangeFilter(name, label)` — date range filter
-  - `makeSelectFilter(name, label, options)` — select filter
-  - `makeTernaryFilter(name, label)` — ternary boolean filter
-  - `resolveColumn(name)` — column → query metadata resolver
-- Single codebase across **Filament 3, 4, and 5** — same trait, same API. All filter / form / column classes used by the trait exist in identical namespaces across versions.
+  - `makeTextFilter(name, label)` - text search filter
+  - `makeDateRangeFilter(name, label)` - date range filter
+  - `makeSelectFilter(name, label, options)` - select filter
+  - `makeTernaryFilter(name, label)` - ternary boolean filter
+  - `resolveColumn(name)` - column → query metadata resolver
+- Single codebase across **Filament 3, 4, and 5** - same trait, same API. All filter / form / column classes used by the trait exist in identical namespaces across versions.
 - Publishable config (`auto-filters.php`) for date format, select multi/searchable defaults, and search input placeholder.

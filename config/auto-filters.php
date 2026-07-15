@@ -74,4 +74,24 @@ return [
     */
     'prefer_pikaday' => false,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sanitize Filter Names
+    |--------------------------------------------------------------------------
+    |
+    | Auto filters derive their Livewire/URL state key from the column name. A
+    | column like `data.Ukupna naknada` (space + dot + diacritics) is an invalid
+    | wire:model / HTML attribute and breaks the whole filters form in the browser.
+    |
+    | When true (default), such unsafe names are replaced with a safe slug
+    | (`af_data_ukupna_naknada`) via `HasAutoFilters::filterName()`, while names
+    | that are already valid keys (letters/digits/underscore, e.g. `product`) pass
+    | through unchanged. The column name still drives the query.
+    |
+    | Set to false to keep the legacy raw-column-name behavior (unsafe with
+    | spaced/dotted columns).
+    |
+    */
+    'sanitize_names' => true,
+
 ];

@@ -15,6 +15,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use PtPlugins\FilamentAutoFilters\Enums\FilterType;
 
 /**
@@ -53,7 +54,10 @@ trait HasAutoFilters
         $autoFilters = [];
 
         foreach ($table->getColumns() as $name => $column) {
-            if (in_array($name, $overrideNames, true)) {
+            // Overrides may target a column by its original name or by the safe
+            // filter slug (static::filterName). $skip stays keyed by original name.
+            if (in_array($name, $overrideNames, true)
+                || in_array(static::filterName($name), $overrideNames, true)) {
                 continue;
             }
 
@@ -97,6 +101,42 @@ trait HasAutoFilters
     }
 
     /**
+     * Build a safe, stable Filament filter name from a (possibly dotted / spaced /
+     * accented) column name.
+     *
+     * The column name still drives the query via resolveColumn(); this is only the
+     * filter's identity, i.e. the Livewire/URL state key (?tableFilters[...]). A raw
+     * column like `data.Ukupna naknada` (space + dot + diacritics) is an invalid
+     * wire:model / HTML attribute and breaks the whole filters form in the browser -
+     * this slug avoids that.
+     *
+     * Conditional by design: names that are already valid, safe state keys
+     * (letters/digits/underscore) pass through unchanged, so existing simple-column
+     * filters keep their names (and their bookmarked URLs / e2e selectors). Only
+     * unsafe names are slugged. Set `auto-filters.sanitize_names` to false to disable
+     * entirely (legacy raw-name behavior).
+     *
+     * Deterministic and public so callers can reproduce the slug to target an auto
+     * filter with an override.
+     */
+    public static function filterName(string $column): string
+    {
+        if (! config('auto-filters.sanitize_names', true)) {
+            return $column;
+        }
+
+        // Already a valid, safe Livewire state key -> leave untouched (backward compatible).
+        if (preg_match('/^[A-Za-z0-9_]+$/', $column) === 1) {
+            return $column;
+        }
+
+        // Turn path separators (dots) into spaces first so Str::slug keeps each segment
+        // distinct (it strips dots otherwise: `rel.col` -> `relcol`), which also avoids
+        // needless collisions.
+        return 'af_'.Str::slug(str_replace('.', ' ', $column), '_');
+    }
+
+    /**
      * Create a ternary (yes/no/all) filter for a boolean column. Handles
      * direct, JSON, and relationship columns via the same dot-notation
      * convention as the other helpers.
@@ -104,7 +144,7 @@ trait HasAutoFilters
     protected static function makeTernaryFilter(string $name, string $label): TernaryFilter
     {
         $resolved = static::resolveColumn($name);
-        $filter = TernaryFilter::make($name)->label($label);
+        $filter = TernaryFilter::make(static::filterName($name))->label($label);
 
         if (config('auto-filters.inline_labels', true)) {
             $filter->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
@@ -140,7 +180,7 @@ trait HasAutoFilters
      */
     protected static function makeSelectFilter(string $name, string $label, array|Closure $options): SelectFilter
     {
-        $filter = SelectFilter::make($name)
+        $filter = SelectFilter::make(static::filterName($name))
             ->label($label)
             ->options($options)
             ->multiple(config('auto-filters.select_multiple', true))
@@ -210,7 +250,7 @@ trait HasAutoFilters
             $untilInput->inlineLabel();
         }
 
-        return Filter::make($name)
+        return Filter::make(static::filterName($name))
             ->label($label)
             ->form([$fromInput, $untilInput])
             ->query(function (Builder $query, array $data) use ($resolved): Builder {
@@ -266,7 +306,7 @@ trait HasAutoFilters
             $input->inlineLabel();
         }
 
-        return Filter::make($name)
+        return Filter::make(static::filterName($name))
             ->label($label)
             ->form([$input])
             ->query(function (Builder $query, array $data) use ($resolved): Builder {
