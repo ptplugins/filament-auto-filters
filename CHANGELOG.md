@@ -4,6 +4,15 @@ All notable changes to `ptplugins/filament-auto-filters` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-07-17
+
+### Added
+- **Inline labels now apply to explicit overrides too.** When `auto-filters.inline_labels` is `true` (the default), `autoFilters()` applies `inlineLabel()` to every override you pass in - not just the auto-generated filters - so a whole slide-over panel reads with one uniform `Label [input]` rhythm without inlining each override by hand. Previously only auto-generated filters were inlined; a raw `SelectFilter::make(...)` override rendered with a stacked label.
+- New reusable `HasAutoFilters::applyInlineLabel(BaseFilter $filter)` helper (used internally by `makeSelectFilter`, `makeTernaryFilter`, and the override pass).
+
+### Note
+- `applyInlineLabel()` works through `modifyFormFieldUsing`, which Filament only runs for filters **without** an explicit form schema (`SelectFilter`, `TernaryFilter`). It is a deliberate no-op for overrides you build with `->form([...])` - inline those by calling `->inlineLabel()` on your own form components, exactly as the package's own text and date filters do. See the README "Uniform inline labels" section.
+
 ## [1.2.0] - 2026-07-15
 
 ### Added

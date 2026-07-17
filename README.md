@@ -1,22 +1,22 @@
 # Filament Auto Filters
 
 <p align="center">
-  <img src="./screenshot.png" alt="Filament Auto Filters — auto-generated filter panel for a Filament resource" width="100%" class="filament-hidden">
+  <img src="./screenshot.png" alt="Filament Auto Filters - auto-generated filter panel for a Filament resource" width="100%" class="filament-hidden">
 </p>
 
-> Automatic table filters for [FilamentPHP](https://filamentphp.com/) **v3, v4, and v5** based on your column definitions. Stop writing repetitive filter code — just define your columns and get smart filters for free.
+> Automatic table filters for [FilamentPHP](https://filamentphp.com/) **v3, v4, and v5** based on your column definitions. Stop writing repetitive filter code - just define your columns and get smart filters for free.
 
-Single codebase across all three Filament major versions — same trait, same API.
+Single codebase across all three Filament major versions - same trait, same API.
 
 <p align="center" class="filament-hidden">
   <a href="https://ptplugins.com/buy-us-a-beer"><img src="https://img.shields.io/badge/%F0%9F%8D%BA-Buy%20us%20a%20beer-yellow" alt="Buy us a beer"></a>
 </p>
 
-**🎯 [Try it live · ptplugins.com/demo/auto-filters](https://ptplugins.com/demo/auto-filters)** — no signup, click any column, see filters generate themselves.
+**🎯 [Try it live · ptplugins.com/demo/auto-filters](https://ptplugins.com/demo/auto-filters)** - no signup, click any column, see filters generate themselves.
 
 ## The Problem
 
-Every Filament resource needs filters. For a typical table with 10 columns, you end up writing 10 filter definitions — most of which follow the same patterns. Date columns get date pickers, text columns get search inputs, relationships get `whereHas` queries.
+Every Filament resource needs filters. For a typical table with 10 columns, you end up writing 10 filter definitions - most of which follow the same patterns. Date columns get date pickers, text columns get search inputs, relationships get `whereHas` queries.
 
 **Before** (manual filters for each column):
 
@@ -194,13 +194,13 @@ The plugin inspects each column and generates the right filter type. Detection r
 | `TextColumn` with `data.X` prefix | Text search via JSON arrow `data->X` |
 | `IconColumn->boolean()` | Ternary (Yes / No / All) |
 | `SelectColumn->options([...])` | Select filter with same options |
-| Other column types | Skipped — pass an explicit filter via `overrides` |
+| Other column types | Skipped - pass an explicit filter via `overrides` |
 
-For our Employee example (8 columns), all 8 filters are generated from zero lines of filter code. Same applies to a table mixing `IconColumn` and `SelectColumn` — they get their right filter automatically.
+For our Employee example (8 columns), all 8 filters are generated from zero lines of filter code. Same applies to a table mixing `IconColumn` and `SelectColumn` - they get their right filter automatically.
 
 ## Overriding Specific Filters
 
-Auto-generated filters are great for most columns. But sometimes you need a `SelectFilter` with specific options, or custom logic. Pass your explicit filters as `overrides` — they replace any auto-generated filter with the same name:
+Auto-generated filters are great for most columns. But sometimes you need a `SelectFilter` with specific options, or custom logic. Pass your explicit filters as `overrides` - they replace any auto-generated filter with the same name:
 
 ```php
 ->filters(static::autoFilters($table, overrides: [
@@ -224,6 +224,8 @@ Auto-generated filters are great for most columns. But sometimes you need a `Sel
 ```
 
 Result: `department.name` and `salary` use your custom filters. The remaining 6 columns still get auto-generated filters.
+
+**Overrides get inline labels too.** When `inline_labels` is `true` (the default), `autoFilters()` applies `inlineLabel()` to your overrides as well, so the whole panel keeps one uniform `Label [input]` rhythm - you don't have to inline each override by hand. This works for `SelectFilter` / `TernaryFilter` overrides (like the `SelectFilter::make(Employee::SALARY)` above). An override you build with `->form([...])` is the one exception - inline those yourself (see the [note below](#uniform-inline-labels-across-every-filter-type)).
 
 ## Skipping Columns
 
@@ -263,7 +265,7 @@ Some columns don't need filters. Pass their names in the `skip` array:
 
 ### `autoFilters(Table $table, array $overrides = [], array $skip = []): array`
 
-The main method. Inspects every column in the table and generates an appropriate filter for `TextColumn`, `IconColumn->boolean()`, and `SelectColumn`. Other column types are skipped — pass them explicitly via `overrides`.
+The main method. Inspects every column in the table and generates an appropriate filter for `TextColumn`, `IconColumn->boolean()`, and `SelectColumn`. Other column types are skipped - pass them explicitly via `overrides`.
 
 ### `makeTernaryFilter(string $name, string $label): TernaryFilter`
 
@@ -272,9 +274,9 @@ Creates a yes/no/all ternary filter for a boolean column. Handles direct, JSON, 
 ### `makeSelectFilter(string $name, string $label, array|Closure $options): SelectFilter`
 
 Creates a select dropdown filter that automatically handles:
-- **Direct columns** — standard `whereIn` query
-- **JSON columns** (`data.xxx`) — uses `attribute()` with arrow notation
-- **Relationship columns** (`rel.col`) — uses `whereHas` query
+- **Direct columns** - standard `whereIn` query
+- **JSON columns** (`data.xxx`) - uses `attribute()` with arrow notation
+- **Relationship columns** (`rel.col`) - uses `whereHas` query
 
 By default, select filters are multiple-choice and searchable (configurable).
 
@@ -317,7 +319,7 @@ return [
 
 ### Optional: Pikaday date picker
 
-Date range filters use Filament's native `DatePicker` by default. If you install the lightweight [`ptplugins/filament-pikaday`](https://packagist.org/packages/ptplugins/filament-pikaday) package (no jQuery, no moment.js), you can route every auto-generated date filter through it instead — set `prefer_pikaday => true`:
+Date range filters use Filament's native `DatePicker` by default. If you install the lightweight [`ptplugins/filament-pikaday`](https://packagist.org/packages/ptplugins/filament-pikaday) package (no jQuery, no moment.js), you can route every auto-generated date filter through it instead - set `prefer_pikaday => true`:
 
 ```bash
 composer require ptplugins/filament-pikaday
@@ -328,15 +330,15 @@ composer require ptplugins/filament-pikaday
 'prefer_pikaday' => true,
 ```
 
-The flag is a no-op when Pikaday isn't installed — auto-filters falls back to the native `DatePicker` automatically, so it's safe to enable in shared config.
+The flag is a no-op when Pikaday isn't installed - auto-filters falls back to the native `DatePicker` automatically, so it's safe to enable in shared config.
 
 `inline_labels` defaults to `true` because that's what pairs best with the recommended slide-over panel below. Set it to `false` if you keep the default Filament dropdown layout (the dropdown is narrow and inline labels can look cramped) or if you simply prefer stacked labels.
 
 ## Recommended UX: Slide-Over Panel + Inline Labels
 
-Out of the box Filament renders filters as a dropdown attached to a small "Filter" button — fine for one or two filters, cramped once a table has six or more. With auto-generated filters every column suddenly *has* a filter, so the dropdown stops scaling.
+Out of the box Filament renders filters as a dropdown attached to a small "Filter" button - fine for one or two filters, cramped once a table has six or more. With auto-generated filters every column suddenly *has* a filter, so the dropdown stops scaling.
 
-By default the trait applies `inlineLabel()` to every form field it generates (label on the left of the input, single row per filter — controlled by `inline_labels` in the config). That layout is *tuned for a wide panel* — pair it with a **slide-over** on the Resource and you get a "Linear / Notion"-style filter sidebar like our [live demo](https://ptplugins.com/demo/auto-filters):
+By default the trait applies `inlineLabel()` to every form field it generates (label on the left of the input, single row per filter - controlled by `inline_labels` in the config). That layout is *tuned for a wide panel* - pair it with a **slide-over** on the Resource and you get a "Linear / Notion"-style filter sidebar like our [live demo](https://ptplugins.com/demo/auto-filters):
 
 ```php
 use Filament\Tables\Table;
@@ -360,7 +362,7 @@ public static function table(Table $table): Table
 - Apply / Reset live in the panel footer; close = `Esc` or click outside.
 - Table reclaims the vertical space the old dropdown took.
 
-This is purely Filament's `Table` API — no extra CSS, no Livewire plumbing. The trait stays focused on filter *generation*; this snippet is the matching *presentation*.
+This is purely Filament's `Table` API - no extra CSS, no Livewire plumbing. The trait stays focused on filter *generation*; this snippet is the matching *presentation*.
 
 ### Uniform inline labels across every filter type
 
@@ -369,15 +371,16 @@ When `inline_labels` is `true` (the default), every auto-generated filter render
 | Filter type | How inline label is applied |
 |---|---|
 | Text search (`makeTextFilter`) | `TextInput::inlineLabel()` in the filter's `->form()` schema |
-| Date range (`makeDateRangeFilter`) | **Two stacked rows** (`Date from`, `Date until`) — both `DatePicker::inlineLabel()`. Avoids the asymmetric "label only on first input" layout that a single-row layout produces. |
+| Date range (`makeDateRangeFilter`) | **Two stacked rows** (`Date from`, `Date until`) - both `DatePicker::inlineLabel()`. Avoids the asymmetric "label only on first input" layout that a single-row layout produces. |
 | Select (`makeSelectFilter`) | `SelectFilter::modifyFormFieldUsing(fn ($f) => $f->inlineLabel())` (SelectFilter doesn't have a `->form()` we can put `inlineLabel()` on directly) |
-| Ternary (`makeTernaryFilter`) | Same as Select — `TernaryFilter::modifyFormFieldUsing(fn ($f) => $f->inlineLabel())`. Filament's `TernaryFilter` builds its own form schema, so the regular `inlineLabel()` on a child component would never reach it. |
+| Ternary (`makeTernaryFilter`) | Same as Select - `TernaryFilter::modifyFormFieldUsing(fn ($f) => $f->inlineLabel())`. Filament's `TernaryFilter` builds its own form schema, so the regular `inlineLabel()` on a child component would never reach it. |
+| Overrides (`SelectFilter` / `TernaryFilter`) | `autoFilters()` runs the shared `applyInlineLabel()` helper over every override you pass, so a hand-built `SelectFilter::make(...)` matches the auto-generated ones with no extra code. |
 
-Result: every row in the slide-over reads as `[Label]  [input]` — same vertical rhythm whether the column behind it is text, date, boolean, select, JSON, or a relationship.
+Result: every row in the slide-over reads as `[Label]  [input]` - same vertical rhythm whether the column behind it is text, date, boolean, select, JSON, or a relationship, and whether it was auto-generated or supplied as an override.
 
-Set `inline_labels => false` in the published config to skip all of the above and get stacked labels instead — better suited to the default dropdown layout.
+Set `inline_labels => false` in the published config to skip all of the above and get stacked labels instead - better suited to the default dropdown layout.
 
-> If you write a *custom* filter (`Filter::make()->form([...])` outside this trait) and want it to match the inline style, just add `->inlineLabel()` to every form component in the schema.
+> **The one case `autoFilters()` can't inline for you:** an override built with `Filter::make()->form([...])`. Filament returns a user-supplied form schema verbatim and never runs `modifyFormFieldUsing` on it, so `applyInlineLabel()` (and therefore the override pass) is a no-op there. Add `->inlineLabel()` to every form component in the schema yourself - exactly as the package's own text and date filters do.
 
 ## How Column Detection Works
 

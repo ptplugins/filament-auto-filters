@@ -97,7 +97,38 @@ trait HasAutoFilters
             }
         }
 
-        return array_merge($overrides, $autoFilters);
+        $filters = array_merge($overrides, $autoFilters);
+
+        // Auto-generated filters already carry their inline label (each make* helper
+        // sets it per type). Explicit overrides do not — so apply it to them here as
+        // well, keeping a whole slide-over panel visually uniform without the consumer
+        // having to inline every override by hand. See applyInlineLabel() for the one
+        // case this cannot cover (overrides built with a custom ->form([...]) schema).
+        if (config('auto-filters.inline_labels', true)) {
+            foreach ($overrides as $override) {
+                static::applyInlineLabel($override);
+            }
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Apply an inline label to a filter whose form field the package controls
+     * through getFormField() — i.e. SelectFilter and TernaryFilter, plus any
+     * override of those types passed to autoFilters().
+     *
+     * Filament only runs a filter's modifyFormFieldUsing callback when the filter
+     * has NO explicit form schema (see HasFormSchema::getFormSchema — it returns a
+     * user-supplied ->form([...]) verbatim and never touches modifyFormFieldUsing).
+     * So this is a deliberate no-op for the package's own text and date filters
+     * (which build a ->form([...]) and therefore set inlineLabel() directly on their
+     * fields), and likewise for any override you build with ->form([...]) — inline
+     * those by calling ->inlineLabel() on your own components.
+     */
+    protected static function applyInlineLabel(BaseFilter $filter): void
+    {
+        $filter->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
     }
 
     /**
@@ -147,7 +178,7 @@ trait HasAutoFilters
         $filter = TernaryFilter::make(static::filterName($name))->label($label);
 
         if (config('auto-filters.inline_labels', true)) {
-            $filter->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
+            static::applyInlineLabel($filter);
         }
 
         if ($resolved['type'] === FilterType::Json) {
@@ -187,7 +218,7 @@ trait HasAutoFilters
             ->searchable(config('auto-filters.select_searchable', true));
 
         if (config('auto-filters.inline_labels', true)) {
-            $filter->modifyFormFieldUsing(fn ($field) => $field->inlineLabel());
+            static::applyInlineLabel($filter);
         }
 
         $resolved = static::resolveColumn($name);
