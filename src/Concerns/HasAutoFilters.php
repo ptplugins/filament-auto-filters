@@ -40,24 +40,56 @@ trait HasAutoFilters
     /**
      * Build filters automatically from table columns.
      *
+     * Filters come out in column order. An override takes the slot of the column it
+     * replaces (matched by the column's original name or its filterName() slug), so
+     * the filter panel always mirrors the table header; overrides that match no
+     * column are appended at the end.
+     *
+     * Distinct-value selects: pass `distinct: true` (every plain text column except
+     * `$except`) or `distinct: ['col', 'data.key']` (only those columns) to turn text
+     * filters into multi-select filters whose options are the distinct values present
+     * in the table's query. Options are resolved when the filters are built, via
+     * `$distinctOptionsUsing(string $column, Table $table): array` when given (use it
+     * to scope or cache), otherwise through the table's own query. A column whose
+     * distinct set is empty or larger than `auto-filters.distinct_max_options`
+     * silently stays a text filter, so a 5000-row list never gets a 5000-option select.
+     *
      * @param  array<BaseFilter>  $overrides  Explicit filters that replace auto-generated ones
      * @param  array<string>  $skip  Column names to skip
+     * @param  bool|array<string>  $distinct  true = all plain text columns, or an explicit list of columns
+     * @param  array<string>  $except  Columns excluded from `distinct: true`
+     * @param  (Closure(string, Table): array<int|string, mixed>)|null  $distinctOptionsUsing  Custom option resolver
      * @return array<BaseFilter>
      */
-    protected static function autoFilters(Table $table, array $overrides = [], array $skip = []): array
-    {
-        $overrideNames = array_map(
-            fn (BaseFilter $filter): string => $filter->getName(),
-            $overrides
-        );
+    protected static function autoFilters(
+        Table $table,
+        array $overrides = [],
+        array $skip = [],
+        bool|array $distinct = false,
+        array $except = [],
+        ?Closure $distinctOptionsUsing = null,
+    ): array {
+        /** @var array<string, BaseFilter> $overridesByName */
+        $overridesByName = [];
+        foreach ($overrides as $override) {
+            $overridesByName[$override->getName()] = $override;
+        }
 
-        $autoFilters = [];
+        /** @var array<string, true> $placed */
+        $placed = [];
+        $filters = [];
 
         foreach ($table->getColumns() as $name => $column) {
             // Overrides may target a column by its original name or by the safe
             // filter slug (static::filterName). $skip stays keyed by original name.
-            if (in_array($name, $overrideNames, true)
-                || in_array(static::filterName($name), $overrideNames, true)) {
+            $override = $overridesByName[$name] ?? $overridesByName[static::filterName($name)] ?? null;
+
+            if ($override !== null) {
+                if (! isset($placed[$override->getName()])) {
+                    $filters[] = $override;
+                    $placed[$override->getName()] = true;
+                }
+
                 continue;
             }
 
@@ -71,7 +103,7 @@ trait HasAutoFilters
                 // Only auto-filter boolean IconColumns. Non-boolean IconColumns
                 // (status icons mapped to enums) skip — user can override manually.
                 if ($column->isBoolean()) {
-                    $autoFilters[] = static::makeTernaryFilter($name, $label);
+                    $filters[] = static::makeTernaryFilter($name, $label);
                 }
 
                 continue;
@@ -80,7 +112,7 @@ trait HasAutoFilters
             if ($column instanceof SelectColumn) {
                 $options = $column->getOptions();
                 if (! empty($options)) {
-                    $autoFilters[] = static::makeSelectFilter($name, $label, $options);
+                    $filters[] = static::makeSelectFilter($name, $label, $options);
                 }
 
                 continue;
@@ -91,13 +123,30 @@ trait HasAutoFilters
             }
 
             if ($column->isDate() || $column->isDateTime()) {
-                $autoFilters[] = static::makeDateRangeFilter($name, $label);
-            } else {
-                $autoFilters[] = static::makeTextFilter($name, $label);
+                $filters[] = static::makeDateRangeFilter($name, $label);
+
+                continue;
             }
+
+            if (static::wantsDistinct($name, $distinct, $except)) {
+                $select = static::makeDistinctSelectFilter($table, $name, $label, $distinctOptionsUsing);
+
+                if ($select !== null) {
+                    $filters[] = $select;
+
+                    continue;
+                }
+            }
+
+            $filters[] = static::makeTextFilter($name, $label);
         }
 
-        $filters = array_merge($overrides, $autoFilters);
+        foreach ($overrides as $override) {
+            if (! isset($placed[$override->getName()])) {
+                $filters[] = $override;
+                $placed[$override->getName()] = true;
+            }
+        }
 
         // Auto-generated filters already carry their inline label (each make* helper
         // sets it per type). Explicit overrides do not — so apply it to them here as
@@ -111,6 +160,100 @@ trait HasAutoFilters
         }
 
         return $filters;
+    }
+
+    /**
+     * Whether a plain text column should become a distinct-value select.
+     *
+     * @param  bool|array<string>  $distinct
+     * @param  array<string>  $except
+     */
+    protected static function wantsDistinct(string $name, bool|array $distinct, array $except): bool
+    {
+        if ($distinct === true) {
+            return ! in_array($name, $except, true);
+        }
+
+        if ($distinct === false) {
+            return false;
+        }
+
+        return in_array($name, $distinct, true);
+    }
+
+    /**
+     * Build a multi-select filter whose options are the distinct values of a column.
+     *
+     * Returns null when the column has no values or more than
+     * `auto-filters.distinct_max_options` - the caller then falls back to a text
+     * filter. Values are sorted naturally and used as both option key and label.
+     *
+     * @param  (Closure(string, Table): array<int|string, mixed>)|null  $optionsUsing
+     */
+    protected static function makeDistinctSelectFilter(Table $table, string $name, string $label, ?Closure $optionsUsing = null): ?SelectFilter
+    {
+        $raw = $optionsUsing !== null
+            ? $optionsUsing($name, $table)
+            : static::distinctColumnValues($table, $name);
+
+        $values = [];
+        foreach ($raw as $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $values[] = (string) $value;
+        }
+
+        $values = array_values(array_unique($values));
+
+        if ($values === [] || count($values) > (int) config('auto-filters.distinct_max_options', 50)) {
+            return null;
+        }
+
+        natcasesort($values);
+        $values = array_values($values);
+
+        return static::makeSelectFilter($name, $label, array_combine($values, $values));
+    }
+
+    /**
+     * Distinct non-null values of a column in the table's current query (direct,
+     * JSON `data.key`, or `relation.column`). The query's ordering and eager loads
+     * are dropped; its scopes and constraints (e.g. a relation manager's owner
+     * record) are kept, so options reflect exactly the rows the table can show.
+     *
+     * @return array<int, mixed>
+     */
+    protected static function distinctColumnValues(Table $table, string $name): array
+    {
+        $resolved = static::resolveColumn($name);
+        $query = $table->getQuery();
+
+        if ($resolved['type'] === FilterType::Relationship) {
+            $related = $query->getModel()->{$resolved['relationship']}()->getRelated();
+            $column = $resolved['column'];
+
+            return $related->newQuery()
+                ->toBase()
+                ->whereNotNull($column)
+                ->distinct()
+                ->pluck($column)
+                ->all();
+        }
+
+        $column = $resolved['query_column'];
+        $base = (clone $query)->toBase();
+        $wrapped = $base->getGrammar()->wrap($column);
+
+        return $base
+            ->reorder()
+            ->whereNotNull($column)
+            ->distinct()
+            ->selectRaw($wrapped.' as af_distinct_value')
+            ->get()
+            ->pluck('af_distinct_value')
+            ->all();
     }
 
     /**

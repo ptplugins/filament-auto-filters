@@ -255,17 +255,62 @@ Some columns don't need filters. Pass their names in the `skip` array:
 ))
 ```
 
-**Priority order:**
-1. Override filters are always included first
-2. Columns matching an override name are skipped (no duplicates)
+**Rules:**
+1. Filters come out in **column order** - the panel mirrors the table header
+2. An override takes the slot of the column it replaces (matched by original name or `filterName()` slug); overrides matching no column are appended last
 3. Columns in the `skip` list are skipped
 4. Everything else gets an auto-generated filter
 
+## Distinct-Value Select Filters
+
+A text filter is the safe default, but users often want a dropdown of *the values that actually exist* - e.g. a multi-select of the cost amounts present on one event. Opt in with `distinct`:
+
+```php
+// Every plain text column becomes a multi-select of its distinct values,
+// except the free-text ones you list
+->filters(static::autoFilters($table,
+    distinct: true,
+    except: ['notes', 'description'],
+))
+
+// ...or only the columns you name (direct, JSON data.key or relation.column)
+->filters(static::autoFilters($table,
+    distinct: ['cost', 'data.city', 'department.name'],
+))
+```
+
+How it behaves:
+- Options are the distinct, non-null values from the **table's own query** - scopes and constraints (e.g. a relation manager's owner record) are kept, ordering and eager loads are dropped. Values are sorted naturally and used as both key and label.
+- Date columns are never converted.
+- A column with **no values**, or with more than `distinct_max_options` (default `50`) distinct values, silently stays a text filter - a 5000-row list never gets a 5000-option select.
+- Options are resolved when the filters are built (one `SELECT DISTINCT` per column). On large tables name a few columns instead of `distinct: true`, or supply your own resolver:
+
+```php
+->filters(static::autoFilters($table,
+    distinct: static::costColumns(),
+    distinctOptionsUsing: fn (string $column, Table $table): array => Cache::remember(
+        "rm_cost_opts:{$this->getOwnerRecord()->getKey()}:{$column}",
+        now()->addHour(),
+        fn () => $table->getQuery()->distinct()->pluck($column)->all(),
+    ),
+))
+```
+
+The resolver receives the original column name and must return a flat list of values; `null` / empty strings are dropped and the threshold still applies.
+
 ## API Reference
 
-### `autoFilters(Table $table, array $overrides = [], array $skip = []): array`
+### `autoFilters(Table $table, array $overrides = [], array $skip = [], bool|array $distinct = false, array $except = [], ?Closure $distinctOptionsUsing = null): array`
 
-The main method. Inspects every column in the table and generates an appropriate filter for `TextColumn`, `IconColumn->boolean()`, and `SelectColumn`. Other column types are skipped - pass them explicitly via `overrides`.
+The main method. Inspects every column in the table, in column order, and generates an appropriate filter for `TextColumn`, `IconColumn->boolean()`, and `SelectColumn`. Other column types are skipped - pass them explicitly via `overrides`. See [Distinct-Value Select Filters](#distinct-value-select-filters) for `distinct`, `except` and `distinctOptionsUsing`.
+
+### `makeDistinctSelectFilter(Table $table, string $name, string $label, ?Closure $optionsUsing = null): ?SelectFilter`
+
+Builds a multi-select of a column's distinct values, or returns `null` (caller falls back to a text filter) when there are none or more than `distinct_max_options`.
+
+### `distinctColumnValues(Table $table, string $name): array`
+
+Distinct non-null values of a direct / JSON / relationship column in the table's current query.
 
 ### `makeTernaryFilter(string $name, string $label): TernaryFilter`
 
@@ -314,6 +359,8 @@ return [
     'select_searchable'       => true,         // Searchable dropdowns by default
     'inline_labels'           => true,         // Apply ->inlineLabel() to every auto-filter
     'prefer_pikaday'          => false,        // Use Pikaday for date filters when installed
+    'sanitize_names'          => true,         // Slug unsafe (dotted/spaced) column names
+    'distinct_max_options'    => 50,           // Max distinct values for a `distinct` select
 ];
 ```
 

@@ -4,6 +4,20 @@ All notable changes to `ptplugins/filament-auto-filters` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-08-20
+
+### Fixed
+- **Overrides keep their column position.** `autoFilters()` used to `array_merge($overrides, $auto)`, which pushed every override to the top of the filter panel regardless of where its column sits in the table. An override now takes the slot of the column it replaces (matched by original name or `filterName()` slug); overrides matching no column are appended last. The panel mirrors the table header without any re-sorting on the consumer side.
+
+### Added
+- **Distinct-value select filters, opt-in.** `autoFilters($table, distinct: true, except: [...])` turns every plain text column (minus `$except`) into a multi-select whose options are the distinct values present in the table's query; `distinct: ['cost', 'data.city']` limits it to the listed columns. Direct, JSON (`data.key`) and `relation.column` columns are supported through the existing `resolveColumn()` convention.
+- `distinctOptionsUsing: fn (string $column, Table $table): array` lets you supply (scoped, cached) option values yourself instead of the default query - e.g. per owner record in a relation manager.
+- `auto-filters.distinct_max_options` (default `50`): a column with no values or with more distinct values than this silently stays a text filter.
+- New protected helpers `wantsDistinct()`, `makeDistinctSelectFilter()`, `distinctColumnValues()`.
+
+### Note
+- Distinct options are resolved when the filters are built (one lightweight `SELECT DISTINCT` per column, eager loads and ordering dropped). On very large tables prefer `distinct: [...]` for a few columns, or `distinctOptionsUsing` with your own cache.
+
 ## [1.3.0] - 2026-07-17
 
 ### Added

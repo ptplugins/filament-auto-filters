@@ -94,4 +94,17 @@ return [
     */
     'sanitize_names' => true,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Distinct Select Threshold
+    |--------------------------------------------------------------------------
+    |
+    | Upper bound on the number of distinct values a column may have for
+    | `autoFilters(..., distinct: ...)` to turn it into a multi-select. Above
+    | it (or when the column has no values at all) the column silently keeps a
+    | plain text filter, so a long list never gets a thousand-option select.
+    |
+    */
+    'distinct_max_options' => 50,
+
 ];
