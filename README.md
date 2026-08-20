@@ -296,7 +296,7 @@ How it behaves:
 ))
 ```
 
-The resolver receives the original column name and must return a flat list of values; `null` / empty strings are dropped and the threshold still applies.
+The resolver receives the original column name and returns either a flat list of values (sorted naturally, value doubles as label) or a ready `value => label` map when you want formatted labels (order and labels kept as-is). `null` / empty values are dropped and the threshold still applies.
 
 ## API Reference
 

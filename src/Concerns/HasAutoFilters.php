@@ -186,7 +186,9 @@ trait HasAutoFilters
      *
      * Returns null when the column has no values or more than
      * `auto-filters.distinct_max_options` - the caller then falls back to a text
-     * filter. Values are sorted naturally and used as both option key and label.
+     * filter. A flat list of values is sorted naturally and used as both option
+     * key and label; an associative `value => label` array from the resolver is
+     * used as-is (order and labels preserved).
      *
      * @param  (Closure(string, Table): array<int|string, mixed>)|null  $optionsUsing
      */
@@ -195,6 +197,27 @@ trait HasAutoFilters
         $raw = $optionsUsing !== null
             ? $optionsUsing($name, $table)
             : static::distinctColumnValues($table, $name);
+
+        $max = (int) config('auto-filters.distinct_max_options', 50);
+
+        // A resolver may hand back a ready `value => label` map (e.g. formatted
+        // amounts). Keep its order and labels; only drop blank values.
+        if ($raw !== [] && ! array_is_list($raw)) {
+            $options = [];
+            foreach ($raw as $value => $optionLabel) {
+                if ($value === '' || $optionLabel === null || $optionLabel === '') {
+                    continue;
+                }
+
+                $options[(string) $value] = (string) $optionLabel;
+            }
+
+            if ($options === [] || count($options) > $max) {
+                return null;
+            }
+
+            return static::makeSelectFilter($name, $label, $options);
+        }
 
         $values = [];
         foreach ($raw as $value) {
@@ -207,7 +230,7 @@ trait HasAutoFilters
 
         $values = array_values(array_unique($values));
 
-        if ($values === [] || count($values) > (int) config('auto-filters.distinct_max_options', 50)) {
+        if ($values === [] || count($values) > $max) {
             return null;
         }
 
